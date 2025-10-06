@@ -1,0 +1,12 @@
+# Core
+numpy>=1.23
+pandas>=1.5
+scikit-learn>=1.2
+
+# TensorFlow CPU or GPU (choose one environment-appropriate build)
+tensorflow>=2.12
+
+# Optional but recommended on Windows/NVIDIA (driver JIT is fine without these)
+# nvidia-cudnn-cu12
+# nvidia-cublas-cu12
+# nvidia-cuda-runtime-cu12
