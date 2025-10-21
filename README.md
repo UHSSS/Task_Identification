@@ -76,7 +76,6 @@ export-dir <path>    chooses where all timing/latency CSVs are written   (Option
 
 
 Outputs:
-  test_infer_times_window.csv
   test_window_metrics.csv
   test_per_trial_decisions.csv
   test_stream_latency_ms.csv
@@ -122,7 +121,7 @@ Key exported files include:
 - test_per_trial_decisions.csv:  per-trial predicted user and task outcomes
 - test_stream_latency_ms.csv:  latency statistics (p50, p90, p95, mean) for real-time performance
 - test_decision_events.csv:  record of all per-window and per-trial classification events
-- test_infer_times_window.csv:  timing data for inference (used to compute data latency CDF/PDF)
+
 
 All exported files are standard CSV format and can be opened in Excel or any data analysis tool.
 
