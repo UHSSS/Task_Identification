@@ -98,11 +98,17 @@ python vr_dualhead_task_user_cnn_anthro.py test ^
 Useful split options when user decide to split data in "Data_train" for train, val, test. Change root acccordingly:
 
   --use-splits test ^
+  
                all          use all matching files
+               
                train        use train split only
+               
                val          use validation split only
+               
                test         use test split only
+               
                unused       trials not assigned to train/val/test
+               
                not-train    all non-train data (val + test + unused)
 
 
