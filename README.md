@@ -84,6 +84,7 @@ python vr_dualhead_task_user_cnn_anthro.py test ^
   --time-per-window
 
 Testing with new-trained model:
+
 python vr_dualhead_task_user_cnn_anthro.py test ^
   --root "C:\path\to\your\Data_test" ^
   --model-in ".\models\dual_model_cnn_artifact.pkl" ^
