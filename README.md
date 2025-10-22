@@ -54,33 +54,25 @@ No need to re-train model if testing with Example model provided.
 
 If user would like to train new model:
 
-python vr_dualhead_task_user_cnn_anthro.py train ^
-  --root "C:\path\to\your\Data_train" ^
+    python vr_dualhead_task_user_cnn_anthro.py train ^
+      --root "C:\path\to\your\Data_train" ^ 
+      --model-out ".\models\dual_model_cnn_artifact.pkl" ^
+      --epochs 30 ^
+      --batch-size 128 ^
+      --precision-target 0.98 ^
+      --train-counts 6,2 ^
+      --test-counts 2 ^
+      --max-wins-per-file 200 ^
+      --dropout 0.2 ^
+
   
-  --model-out ".\models\dual_model_cnn_artifact.pkl" ^
-  
-  --epochs 30 ^
-  
-  --batch-size 128 ^
-  
-  --precision-target 0.98 ^
-  
-  --train-counts 6,2 ^
-  
-  --test-counts 2 ^
-  
-  --max-wins-per-file 200 ^
-  
-  --dropout 0.2 ^
 
 Outputs:
-  models\dual_model_cnn_artifact_cnn.keras
-  
-  models\dual_model_cnn_artifact.pkl
-  
-  models\exports\train_epoch_times.csv
-  
-  models\exports\train_summary.csv
+
+      models\dual_model_cnn_artifact_cnn.keras
+      models\dual_model_cnn_artifact.pkl
+      models\exports\train_epoch_times.csv
+      models\exports\train_summary.csv
 
 - When train and test data are stored seperately, splits are not
   necessary when train/test, just use data path accordingly.
@@ -91,49 +83,36 @@ Outputs:
 -------------------------------------------------------------
 Testing with Example model:
 
-python vr_dualhead_task_user_cnn_anthro.py test ^
-
-  --root "C:\path\to\your\Data_test" ^
-  
-  --model-in ".\Example_model\dual_taskid_example_artifact.pkl" ^
-  
-  --require both ^
-  
-  --time-per-window
+    python vr_dualhead_task_user_cnn_anthro.py test ^
+      --root "C:\path\to\your\Data_test" ^
+      --model-in ".\Example_model\dual_taskid_example_artifact.pkl" ^
+      --require both ^
+      --time-per-window
 
 Testing with new-trained model:
 
-python vr_dualhead_task_user_cnn_anthro.py test ^
-
-  --root "C:\path\to\your\Data_test" ^
-  
-  --model-in ".\models\dual_model_cnn_artifact.pkl" ^
-  
-  --require both ^
-  
-  --time-per-window
+    python vr_dualhead_task_user_cnn_anthro.py test ^
+      --root "C:\path\to\your\Data_test" ^
+      --model-in ".\models\dual_model_cnn_artifact.pkl" ^
+      --require both ^
+      --time-per-window
 
 
 Useful split options when user decide to split data in "Data_train" for train, val, test. Change root acccordingly:
 
-  --use-splits test ^
+    --use-splits test ^
   
-               all          use all matching files
-               
-               train        use train split only
-               
-               val          use validation split only
-               
-               test         use test split only
-               
-               unused       trials not assigned to train/val/test
-               
-               not-train    all non-train data (val + test + unused)
+                   all          use all matching files
+                   train        use train split only
+                   val          use validation split only
+                   test         use test split only
+                   unused       trials not assigned to train/val/test
+                   not-train    all non-train data (val + test + unused)
 
 
 Other flags:
-time-per-window      flag to measure per-window inference latency
-export-dir <path>    chooses where all timing/latency CSVs are written   (Optional, default next to model-in if not set )
+        time-per-window      flag to measure per-window inference latency
+        export-dir <path>    chooses where all timing/latency CSVs are written   (Optional, default next to model-in if not set )
 
 
 Outputs:
