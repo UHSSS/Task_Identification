@@ -75,8 +75,11 @@ python vr_dualhead_task_user_cnn_anthro.py train ^
 
 Outputs:
   models\dual_model_cnn_artifact_cnn.keras
+  
   models\dual_model_cnn_artifact.pkl
+  
   models\exports\train_epoch_times.csv
+  
   models\exports\train_summary.csv
 
 - When train and test data are stored seperately, splits are not
