@@ -56,13 +56,21 @@ If user would like to train new model:
 
 python vr_dualhead_task_user_cnn_anthro.py train ^
   --root "C:\path\to\your\Data_train" ^
+  
   --model-out ".\models\dual_model_cnn_artifact.pkl" ^
+  
   --epochs 30 ^
+  
   --batch-size 128 ^
+  
   --precision-target 0.98 ^
+  
   --train-counts 6,2 ^
+  
   --test-counts 2 ^
+  
   --max-wins-per-file 200 ^
+  
   --dropout 0.2 ^
 
 Outputs:
@@ -81,17 +89,25 @@ Outputs:
 Testing with Example model:
 
 python vr_dualhead_task_user_cnn_anthro.py test ^
+
   --root "C:\path\to\your\Data_test" ^
+  
   --model-in ".\Example_model\dual_taskid_example_artifact.pkl" ^
+  
   --require both ^
+  
   --time-per-window
 
 Testing with new-trained model:
 
 python vr_dualhead_task_user_cnn_anthro.py test ^
+
   --root "C:\path\to\your\Data_test" ^
+  
   --model-in ".\models\dual_model_cnn_artifact.pkl" ^
+  
   --require both ^
+  
   --time-per-window
 
 
