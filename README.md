@@ -17,7 +17,7 @@ root/
     trial_id/
       file.csv
 
-root folder for training is "Data"
+root folder for training is "Data_train"
 
 Each CSV should contain features such as imu_pos_*, imu_rot_*, rh_pos_*, rh_rot_*,
 rh_*_curl, etc.  Left-hand (lh_*) data is ignored automatically.
@@ -33,7 +33,7 @@ root/
 
 root folder for testing is "Data_test"
 
-Note: "Data" and "Data_set" is mutually exclusive for strict data split.
+Note: "Data_train" and "Data_test" is mutually exclusive for strict data split.
 
 Each CSV should contain features such as imu_pos_*, imu_rot_*, rh_pos_*, rh_rot_*,
 rh_*_curl, etc.  Left-hand (lh_*) data is ignored automatically.
@@ -52,10 +52,10 @@ Task names are inferred from filenames (e.g., Hammer_3.csv -> Hammer).
 -------------------------------------------------------------
 No need to re-train model if testing with Example model provided.
 
-If user would like to train their new model:
+If user would like to train new model:
 
 python vr_dualhead_task_user_cnn_anthro.py train ^
-  --root "C:\path\to\your\Data" ^
+  --root "C:\path\to\your\Data_train" ^
   --model-out ".\models\dual_model_cnn_artifact.pkl" ^
   --epochs 30 ^
   --batch-size 128 ^
@@ -71,7 +71,10 @@ Outputs:
   models\exports\train_epoch_times.csv
   models\exports\train_summary.csv
 
-
+- When train and test data are stored seperately, splits are not
+  necessary when train/test, just use data path accordingly.
+  User may split data in "Data_train" based on own preference.
+  
 -------------------------------------------------------------
 5.  Testing example (Command Prompt)
 -------------------------------------------------------------
@@ -92,13 +95,16 @@ python vr_dualhead_task_user_cnn_anthro.py test ^
   --time-per-window
 
 
-Useful split options:
-  all          use all matching files
-  train        use train split only
-  val          use validation split only
-  test         use test split only
-  unused       trials not assigned to train/val/test
-  not-train    all non-train data (val + test + unused)
+Useful split options when user decide to split data in "Data_train" for train, val, test. Change root acccordingly:
+
+  --use-splits test ^
+               all          use all matching files
+               train        use train split only
+               val          use validation split only
+               test         use test split only
+               unused       trials not assigned to train/val/test
+               not-train    all non-train data (val + test + unused)
+
 
 Other flags:
 time-per-window      flag to measure per-window inference latency
@@ -162,8 +168,6 @@ All exported files are standard CSV format and can be opened in Excel or any dat
 -------------------------------------------------------------
 9.  Notes
 -------------------------------------------------------------
-- When train and test data are stored seperately, splits are not
-  necessarily defined when train/test, just use data path accordingly. 
 - If each user has exactly 10 trials and all are assigned to
   train (6) + val (2) + test (2), no "unused" trials remain.
   This is normal and expected.
