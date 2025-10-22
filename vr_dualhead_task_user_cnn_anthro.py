@@ -50,7 +50,7 @@ class StreamConfig:
     fs: float = 90.0
     win_ms: int = 200
     stride_ms: int = 75
-    stability_K: int = 2
+    stability_K: int = 15
     random_state: int = 42
 
     user_col: str = "user"
@@ -59,7 +59,7 @@ class StreamConfig:
 
     use_cols_patterns: Tuple[str, ...] = (
         "imu_pos_", "imu_rot_",
-        "rh_pos_", "rh_rot_", "rh_*_curl",
+        "rh_pos_", "rh_rot_", "rh_*_curl","rh_*_knuckle_*"
     )
 
 # -------------------- Utils --------------------
@@ -696,6 +696,7 @@ def _print_confusion(cm, row_labels, col_labels, normalize=False, max_label=10, 
             row.append(f"{val:.3f}" if normalize else str(int(val)))
         print(_fmt_row(row, widths))
 
+
 def stage_test(args):
     with open(_norm_path(args.model_in), "rb") as f:
         art = pickle.load(f)
@@ -736,7 +737,7 @@ def stage_test(args):
 
     X, y_task, y_user, T = build_eval_windows(paths, cfg, feat_cols, tasks, users, allowed_keys=allowed_keys)
 
-    # Apply the same anthropometric normalization used at train time (per-user, with global fallback)
+    # Apply same anthropometric normalization used at train time
     anthro_scales = art.get("anthro_scales", None)
     if anthro_scales is not None:
         yu_raw_test = np.array([[users[idx]] for idx in y_user], dtype=object)
@@ -760,14 +761,6 @@ def stage_test(args):
         avg = total_predict_s / max(1, len(Xn))
         infer_times = [avg] * len(Xn)
         pt = preds["task"]; pu = preds["user"]
-
-    # # Export per-window inference times
-    # if infer_times:
-    #     df_infer = pd.DataFrame({
-    #         "window_index": list(range(len(infer_times))),
-    #         "seconds": infer_times
-    #     })
-    #     _export_csv(df_infer, os.path.join(export_dir, "test_infer_times_window.csv"))
 
     # --- WALL CLOCK PATCH: cumulative compute time (seconds) for quick lookup ---
     infer_times = np.asarray(infer_times, dtype=float)
@@ -844,14 +837,13 @@ def stage_test(args):
     K2 = int(args.k2_fallback) if args.k2_fallback is not None else 0
     theta_bump = float(args.theta_bump)
 
-    # hard-force after N strides if no θ/K decision ---
-    FORCE_STRIDES = 10  # <<<<< force decision after exactly 5 strides
+    # hard-force after N strides if no θ/K decision
+    FORCE_STRIDES = 20
 
     data_lat = []
     decisions=0; c_task=0; c_user=0; c_both=0
     per_trial_rows = []
 
-    # decision/miss collectors
     decision_events = []
     missed_events = []
     forced_events = []
@@ -888,13 +880,31 @@ def stage_test(args):
         true_t = tasks.index(task); true_u = users.index(u)
         consec_t = consec_u = 0; decision_idx = None
 
+        last_t, last_u = [], []
+
+
         for i in range(i0, i1):
             pt_i = pt[i]; pu_i = pu[i]
             pred_t = int(np.argmax(pt_i)); pred_u = int(np.argmax(pu_i))
             maxpt = float(np.max(pt_i)); maxpu = float(np.max(pu_i))
 
-            hit_t = (pred_t == true_t) and (maxpt >= (theta['task'] + theta_bump))
-            hit_u = (pred_u == true_u) and (maxpu >= (theta['user'] + theta_bump))
+            # --- CONSENSUS-BASED (non-leaky) decision logic ---
+            # Maintain rolling buffers of last K predictions
+            last_t.append(pred_t)
+            if len(last_t) > K_task: last_t.pop(0)
+            last_u.append(pred_u)
+            if len(last_u) > K_user: last_u.pop(0)
+
+            # Confidence check
+            conf_t = (maxpt >= (theta['task'] + theta_bump))
+            conf_u = (maxpu >= (theta['user'] + theta_bump))
+            # Consistency (same label for K consecutive windows)
+            cons_t = (len(last_t) == K_task and len(set(last_t)) == 1)
+            cons_u = (len(last_u) == K_user and len(set(last_u)) == 1)
+
+            hit_t = conf_t and cons_t
+            hit_u = conf_u and cons_u
+
 
             consec_t = consec_t + 1 if hit_t else 0
             consec_u = consec_u + 1 if hit_u else 0
@@ -913,11 +923,11 @@ def stage_test(args):
                 i_eval = i
                 data_ms = (decision_idx + 1) * cfg.stride_ms
 
-                # --- WALL CLOCK PATCH: latency decomposition ---
-                window_fill_ms = int(cfg.win_ms)                       # time to collect first window
-                wait_ms = int(max(0, decision_idx) * cfg.stride_ms)    # stride-based waiting after start
+                # latency components
+                window_fill_ms = int(cfg.win_ms)
+                wait_ms = int(max(0, decision_idx) * cfg.stride_ms)
 
-                # cumulative compute time up to the decision (requires infer_times arrays)
+                # compute
                 if len(infer_times_cumsum) == len(pt):
                     cum_start = infer_times_cumsum[i0 - 1] if i0 > 0 else 0.0
                     compute_ms_until_decision = int(round((infer_times_cumsum[i_eval] - cum_start) * 1000.0))
@@ -937,14 +947,10 @@ def stage_test(args):
                     "pred_task": tasks[int(np.argmax(pt[i_eval]))],
                     "pred_user": users[int(np.argmax(pu[i_eval]))],
                     "t_decide_stride_ms": int(data_ms),
-                    # "decision_window_index": int(i_eval),
-
-                    # --- NEW: wall-clock latency fields ---
                     "window_fill_ms": int(window_fill_ms),
                     "wait_ms": int(wait_ms),
                     "compute_ms_until_decision": int(compute_ms_until_decision),
                     "total_decision_latency_ms": int(total_decision_latency_ms),
-
                     "require": args.require,
                     "K_task": int(K_task),
                     "K_user": int(K_user),
@@ -969,12 +975,7 @@ def stage_test(args):
             pred_t = int(np.argmax(pt[i_eval])); pred_u = int(np.argmax(pu[i_eval]))
             per_trial_rows.append([u, t, task, True, int(total_decision_latency_ms), tasks[pred_t], users[pred_u], int(pred_t==true_t and pred_u==true_u)])
         else:
-            # --- COMBINED FALLBACK LOGIC ---
-            # Priority:
-            # 1) If K2 > 0 and stream has at least K2 windows -> force at K2
-            # 2) Else if stream has at least FORCE_STRIDES windows -> force at 5 strides
-            # 3) Else if stream shorter but non-empty -> force at last window
-            # 4) Else -> truly missed/empty
+            # fallback
             nwin = (i1 - i0)
             decision_idx = None
             decision_source = None
@@ -995,7 +996,6 @@ def stage_test(args):
                 i_eval = i0 + decision_idx
                 data_ms = (decision_idx + 1) * cfg.stride_ms
 
-                # finalize decision bookkeeping
                 decisions += 1
                 pred_t = int(np.argmax(pt[i_eval])); pred_u = int(np.argmax(pu[i_eval]))
                 c_t = (pred_t == true_t); c_u = (pred_u == true_u)
@@ -1003,7 +1003,6 @@ def stage_test(args):
                 if c_u: c_user += 1
                 if c_t and c_u: c_both += 1
 
-                # latency decomposition (same as θ/K path)
                 window_fill_ms = int(cfg.win_ms)
                 wait_ms = int(max(0, decision_idx) * cfg.stride_ms)
                 if len(infer_times_cumsum) == len(pt):
@@ -1028,13 +1027,10 @@ def stage_test(args):
                     "pred_task": tasks[pred_t],
                     "pred_user": users[pred_u],
                     "t_decide_stride_ms": int(data_ms),
-
-                    # wall-clock components
                     "window_fill_ms": int(window_fill_ms),
                     "wait_ms": int(wait_ms),
                     "compute_ms_until_decision": int(compute_ms_until_decision),
                     "total_decision_latency_ms": int(total_decision_latency_ms),
-
                     "require": args.require,
                     "K_task": int(K_task),
                     "K_user": int(K_user),
@@ -1051,11 +1047,8 @@ def stage_test(args):
                     "decision_source": decision_source
                 })
 
-    # Latency
-    # --- WALL-CLOCK LATENCY SUMMARY ---
+    # Latency summary
     _print_rule("TOTAL DECISION LATENCY (ms)")
-
-    # use total_decision_latency_ms from decision_events if available
     wall_lat = [d.get("total_decision_latency_ms", None) for d in decision_events if d.get("total_decision_latency_ms", None) is not None]
     if wall_lat:
         def _p(a, q): return float(np.percentile(a, q)) if len(a) else float('nan')
@@ -1064,7 +1057,6 @@ def stage_test(args):
         print(f"Total-decision latency: p50={p50:.1f}  p90={p90:.1f}  p95={p95:.1f}  mean={mean:.1f}  n={len(wall_lat)}")
     else:
         print("No decisions (θ/K too strict?)")
-
 
     num_streams = len(file_to_windows)
     missed = max(0, num_streams - decisions)
@@ -1121,12 +1113,10 @@ def stage_test(args):
         df_lat = pd.DataFrame({"total_decision_latency_ms": data_lat})
         _export_csv(df_lat, os.path.join(export_dir, "test_stream_latency_ms.csv"))
 
-    # Detailed decision/missed events
     if decision_events:
         df_dec = pd.DataFrame(decision_events)
         _export_csv(df_dec.sort_values(["total_decision_latency_ms","t_decide_stride_ms"], ascending=False),
                     os.path.join(export_dir, "test_decision_events.csv"))
-        # (optional) quick console peek at slowest 5 by wall-clock
         _print_rule("SLOWEST DECISIONS")
         for _, r in df_dec.sort_values("total_decision_latency_ms", ascending=False).head(5).iterrows():
             print(f"{r['file_path']} | Decision Latency={int(r['total_decision_latency_ms'])} "
@@ -1135,6 +1125,7 @@ def stage_test(args):
     if missed_events:
         df_miss = pd.DataFrame(missed_events)
         _export_csv(df_miss, os.path.join(export_dir, "test_forced_events.csv"))
+
 
 def build_argparser():
     ap = argparse.ArgumentParser(prog="vr_dualhead_task_user_cnn.py")
@@ -1149,7 +1140,7 @@ def build_argparser():
     tr.add_argument("--stride-ms", type=int, default=75)
     tr.add_argument("--stability-k", type=int, default=2)
     tr.add_argument("--idle", type=str, default="idle")
-    tr.add_argument("--seed", type=int, default=42)
+    tr.add_argument("--seed", type=int, default=1715)
     tr.add_argument("--train-counts", type=lambda s: tuple(map(int, s.split(','))), default=(12,4))
     tr.add_argument("--test-counts", type=int, default=0)
     tr.add_argument("--precision-target", type=float, default=0.98)
