@@ -1,30 +1,46 @@
 Dual-Head Task + User CNN (with Anthropometric Normalization)
 =============================================================
 
-This project contains a single Python script that performs joint VR task and user
-classification using a 1D CNN.  It includes anthropometric normalization
-(arm-length and height scaling) before standard z-score normalization.
+This Github repository contains a baseline Python script that demos the methodology implemented for this project.  
+It performs joint VR task and user classification using a 1D CNN. It also includes anthropometric normalization
+(arm-length and height scaling) before standard z-score normalization. A pre-trained model is uploaded to the repository
+as well for a quick demo of the performance.
 
 Main file:
     vr_dualhead_task_user_cnn_anthro.py
 
-
 -------------------------------------------------------------
-1.  Folder layout
+1.  Training Data Folder layout
 -------------------------------------------------------------
 root/
   user_id/
     trial_id/
       file.csv
 
-root folder is "Data"
+root folder for training is "Data"
+
 Each CSV should contain features such as imu_pos_*, imu_rot_*, rh_pos_*, rh_rot_*,
 rh_*_curl, etc.  Left-hand (lh_*) data is ignored automatically.
 Task names are inferred from filenames (e.g., Hammer_3.csv -> Hammer).
 
+-------------------------------------------------------------
+2.  Testing Data Folder layout
+-------------------------------------------------------------
+root/
+  user_id/
+    trial_id/
+      file.csv
+
+root folder for testing is "Data_test"
+
+Note: "Data" and "Data_set" is mutually exclusive for strict data split.
+
+Each CSV should contain features such as imu_pos_*, imu_rot_*, rh_pos_*, rh_rot_*,
+rh_*_curl, etc.  Left-hand (lh_*) data is ignored automatically.
+Task names are inferred from filenames (e.g., Hammer_3.csv -> Hammer).
 
 -------------------------------------------------------------
-2.  Installation
+3.  Installation
 -------------------------------------------------------------
 1)  Create or activate a Python environment.
 2)  Install all dependencies:
@@ -32,8 +48,12 @@ Task names are inferred from filenames (e.g., Hammer_3.csv -> Hammer).
 
 
 -------------------------------------------------------------
-3.  Training example (Command Prompt)
+4.  Training example (Command Prompt)
 -------------------------------------------------------------
+No need to re-train model if testing with Example model provided.
+
+If user would like to train their new model:
+
 python vr_dualhead_task_user_cnn_anthro.py train ^
   --root "C:\path\to\your\Data" ^
   --model-out ".\models\dual_model_cnn_artifact.pkl" ^
@@ -44,7 +64,6 @@ python vr_dualhead_task_user_cnn_anthro.py train ^
   --test-counts 2 ^
   --max-wins-per-file 200 ^
   --dropout 0.2 ^
-  --seed 42
 
 Outputs:
   models\dual_model_cnn_artifact_cnn.keras
@@ -54,13 +73,23 @@ Outputs:
 
 
 -------------------------------------------------------------
-4.  Testing example (Command Prompt)
+5.  Testing example (Command Prompt)
 -------------------------------------------------------------
+Testing with Example model:
+
 python vr_dualhead_task_user_cnn_anthro.py test ^
-  --root "C:\path\to\your\Data" ^
-  --model-in ".\models\dual_model_cnn_artifact.pkl" ^
-  --use-splits test ^
+  --root "C:\path\to\your\Data_test" ^
+  --model-in ".\Example_model\dual_taskid_example_artifact.pkl" ^
+  --require both ^
   --time-per-window
+
+Testing with new-trained model:
+python vr_dualhead_task_user_cnn_anthro.py test ^
+  --root "C:\path\to\your\Data_test" ^
+  --model-in ".\models\dual_model_cnn_artifact.pkl" ^
+  --require both ^
+  --time-per-window
+
 
 Useful split options:
   all          use all matching files
@@ -83,7 +112,7 @@ Outputs:
 
 
 -------------------------------------------------------------
-5.  Normalization summary
+6.  Normalization summary
 -------------------------------------------------------------
 1) Anthropometric normalization (per user):
    - Arm scale = 95th percentile of |rh_pos_(x,y,z)| from TRAIN windows.
@@ -105,11 +134,14 @@ Processing order:
 
 
 -------------------------------------------------------------
-6.  Train/Test Options
+7.  Example Model for Demo
 -------------------------------------------------------------
+A example model is uploaded for quick accessible demo purpose. A corresponding terminal log is also
+included for quick reference.
+
 
 -------------------------------------------------------------
-7.  Output Exports
+8.  Output Exports
 -------------------------------------------------------------
 All results are automatically saved to the folder:
 models\exports\
@@ -127,8 +159,10 @@ All exported files are standard CSV format and can be opened in Excel or any dat
 
 
 -------------------------------------------------------------
-8.  Notes
+9.  Notes
 -------------------------------------------------------------
+- When train and test data are stored seperately, splits are not
+  necessarily defined when train/test, just use data path accordingly. 
 - If each user has exactly 10 trials and all are assigned to
   train (6) + val (2) + test (2), no "unused" trials remain.
   This is normal and expected.
