@@ -112,15 +112,17 @@ Useful split options when user decide to split data in "Data_train" for train, v
 
 
 Other flags:
+
         time-per-window      flag to measure per-window inference latency
         export-dir <path>    chooses where all timing/latency CSVs are written   (Optional, default next to model-in if not set )
 
 
 Outputs:
-  test_window_metrics.csv
-  test_per_trial_decisions.csv
-  test_stream_latency_ms.csv
-  test_decision_events.csv
+
+      test_window_metrics.csv
+      test_per_trial_decisions.csv
+      test_stream_latency_ms.csv
+      test_decision_events.csv
 
 
 -------------------------------------------------------------
