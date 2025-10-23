@@ -860,7 +860,7 @@ def stage_test(args):
     theta_bump = float(args.theta_bump)
 
     # hard-force after N strides if no θ/K decision
-    FORCE_STRIDES = 20
+    FORCE_STRIDES = 40
 
     data_lat = []
     decisions=0; c_task=0; c_user=0; c_both=0
@@ -1010,7 +1010,7 @@ def stage_test(args):
                     decision_source = "K2"
                 elif nwin >= FORCE_STRIDES:
                     decision_idx = FORCE_STRIDES - 1
-                    decision_source = "force_strides"
+                    decision_source = "force_timeout"
                 else:
                     decision_idx = nwin - 1
                     decision_source = "force_end"
