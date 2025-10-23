@@ -63,7 +63,8 @@ If user would like to train new model:
       --train-counts 6,2 ^
       --test-counts 2 ^
       --max-wins-per-file 200 ^
-      --dropout 0.2 
+      --dropout 0.2 ^
+      --seed 42
 
   
 
