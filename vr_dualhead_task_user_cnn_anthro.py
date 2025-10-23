@@ -1010,7 +1010,7 @@ def stage_test(args):
                     decision_source = "K2"
                 elif nwin >= FORCE_STRIDES:
                     decision_idx = FORCE_STRIDES - 1
-                    decision_source = "force_5strides"
+                    decision_source = "force_strides"
                 else:
                     decision_idx = nwin - 1
                     decision_source = "force_end"
