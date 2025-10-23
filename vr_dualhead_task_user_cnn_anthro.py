@@ -698,10 +698,32 @@ def _print_confusion(cm, row_labels, col_labels, normalize=False, max_label=10, 
 
 
 def stage_test(args):
-    with open(_norm_path(args.model_in), "rb") as f:
+    # --- Load artifact ---
+    art_path = Path(_norm_path(args.model_in)).resolve()
+    with open(art_path, "rb") as f:
         art = pickle.load(f)
-    keras_path = art["keras_model_path"]
-    model = tf.keras.models.load_model(keras_path)
+    art_dir = art_path.parent
+
+    # --- Resolve model path ---
+    keras_path = art.get("keras_model_path", "")
+    kp = Path(keras_path)
+    if not kp.is_absolute():
+        kp = (art_dir / kp).resolve()
+
+    # --- Silent fallback search ---
+    if not kp.exists():
+        candidates = list(art_dir.glob("*.keras")) + list((art_dir / "cvmodels").glob("*.keras"))
+        if not candidates:
+            raise FileNotFoundError(f"Model file not found: {kp}")
+        # pick the first match deterministically
+        kp = sorted(candidates, key=lambda p: p.stat().st_mtime, reverse=True)[0]
+
+    # --- Load model quietly ---
+    try:
+        model = keras.models.load_model(str(kp), compile=False)
+    except Exception:
+        model = tf.keras.models.load_model(str(kp), compile=False)
+        
     tasks = art["tasks"]; users = art["users"]
     theta = art["theta"]
     cfgd = art["cfg"]
