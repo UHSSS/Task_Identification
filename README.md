@@ -42,7 +42,7 @@ Task names are inferred from filenames (e.g., Hammer_3.csv -> Hammer).
 -------------------------------------------------------------
 3.  Installation
 -------------------------------------------------------------
-1)  Create or activate a Python environment.
+1)  Create or activate a Python 3.11 environment.
 2)  Install all dependencies:
         pip install -r requirements.txt
 
