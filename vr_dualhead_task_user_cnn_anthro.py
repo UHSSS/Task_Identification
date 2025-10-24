@@ -894,7 +894,7 @@ def stage_test(args):
         ("K_task", K_task),
         ("K_user", K_user),
         ("K2_fallback", K2),
-        ("force_after_strides/end", FORCE_STRIDES),
+        ("force_timeout/end", FORCE_STRIDES),
         ("windows_per_stride_ms", cfg.stride_ms),
     ])
 
